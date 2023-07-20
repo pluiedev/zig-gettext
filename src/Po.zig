@@ -163,7 +163,7 @@ fn writeStringLine(w: anytype, s: []const u8) !void {
             '\r' => try w.writeAll("\\r"),
             '\t' => try w.writeAll("\\t"),
             else => if (b < 0x20) {
-                try w.print("{X:0>2}", .{b});
+                try w.print("\\x{X:0>2}", .{b});
             } else {
                 try w.writeByte(b);
             },
