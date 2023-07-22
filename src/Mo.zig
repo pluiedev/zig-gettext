@@ -76,13 +76,13 @@ pub fn translationString(self: *const Mo, n: u32) [:0]const u8 {
 }
 
 /// Looks up the translation (if any) for the given string.
-pub fn findTranslation(self: *const Mo, original: []const u8) ?[:0]const u8 {
+pub fn findTranslation(self: *const Mo, msgctxt: ?[]const u8, msgid: []const u8) ?[:0]const u8 {
     var left: u32 = 0;
     var right: u32 = self.headerField(.n_strings);
 
     while (left < right) {
         const mid = left + (right - left) / 2;
-        switch (mem.order(u8, original, self.originalString(mid))) {
+        switch (idOrder(msgctxt, msgid, self.original(mid))) {
             .eq => return self.translationString(mid),
             .gt => left = mid + 1,
             .lt => right = mid,
@@ -90,6 +90,19 @@ pub fn findTranslation(self: *const Mo, original: []const u8) ?[:0]const u8 {
     }
 
     return null;
+}
+
+fn idOrder(msgctxt: ?[]const u8, msgid: []const u8, other_full: []const u8) math.Order {
+    // msgid_plural is not considered when looking up translations
+    var id_iter = IdIterator.init(msgctxt, msgid, null);
+    for (other_full) |other_b| {
+        const id_b = id_iter.next() orelse return .lt;
+        switch (math.order(u8, id_b, other_b)) {
+            .lt, .gt => |order| return order,
+            .eq => {},
+        }
+    }
+    return if (id_iter.next() == null) .eq else .gt;
 }
 
 fn string(self: *const Mo, table_offset: u32, n: u32) [:0]const u8 {

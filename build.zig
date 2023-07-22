@@ -1,38 +1,46 @@
 const std = @import("std");
 
-pub fn build(b: *std.Build) !void {
+const binaries = &[_][]const u8{
+    "msgfmt",
+    "xgettext",
+};
+
+pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const xgettext = b.addExecutable(.{
-        .name = "xgettext",
+    const gettext = b.addModule("gettext", .{
+        .source_file = .{ .path = "src/gettext.zig" },
+    });
+
+    for (binaries) |bin| {
+        addBin(b, bin, target, optimize, gettext);
+    }
+}
+
+fn addBin(
+    b: *std.Build,
+    name: []const u8,
+    target: std.zig.CrossTarget,
+    optimize: std.builtin.Mode,
+    gettext: *std.Build.Module,
+) void {
+    const exe = b.addExecutable(.{
+        .name = name,
         .target = target,
         .optimize = optimize,
-        .root_source_file = .{ .path = "src/xgettext.zig" },
+        .root_source_file = .{
+            .path = b.pathJoin(&.{ "src", "bin", b.fmt("{s}.zig", .{name}) }),
+        },
     });
-    b.installArtifact(xgettext);
+    exe.addModule("gettext", gettext);
+    b.installArtifact(exe);
 
-    const run_xgettext = b.addRunArtifact(xgettext);
+    const run = b.addRunArtifact(exe);
     if (b.args) |args| {
-        run_xgettext.addArgs(args);
+        run.addArgs(args);
     }
 
-    const run_xgettext_step = b.step("xgettext", "Run xgettext");
-    run_xgettext_step.dependOn(&run_xgettext.step);
-
-    const msgfmt = b.addExecutable(.{
-        .name = "msgfmt",
-        .target = target,
-        .optimize = optimize,
-        .root_source_file = .{ .path = "src/msgfmt.zig" },
-    });
-    b.installArtifact(msgfmt);
-
-    const run_msgfmt = b.addRunArtifact(msgfmt);
-    if (b.args) |args| {
-        run_msgfmt.addArgs(args);
-    }
-
-    const run_msgfmt_step = b.step("msgfmt", "Run msgfmt");
-    run_msgfmt_step.dependOn(&run_msgfmt.step);
+    const run_step = b.step(name, b.fmt("Run {s}", .{name}));
+    run_step.dependOn(&run.step);
 }

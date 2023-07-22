@@ -12,7 +12,7 @@ const ArrayListUnmanaged = std.ArrayListUnmanaged;
 const Ast = zig.Ast;
 const HashMapUnmanaged = std.HashMapUnmanaged;
 const StringHashMapUnmanaged = std.StringHashMapUnmanaged;
-const Po = @import("Po.zig");
+const Po = @import("gettext").Po;
 
 pub fn main() !void {
     var arena = ArenaAllocator.init(std.heap.page_allocator);

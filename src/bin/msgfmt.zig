@@ -7,8 +7,8 @@ const process = std.process;
 const sort = std.sort;
 const Allocator = mem.Allocator;
 const ArenaAllocator = std.heap.ArenaAllocator;
-const Mo = @import("Mo.zig");
-const Po = @import("Po.zig");
+const Mo = @import("gettext").Mo;
+const Po = @import("gettext").Po;
 
 pub fn main() !void {
     var arena = ArenaAllocator.init(std.heap.page_allocator);
