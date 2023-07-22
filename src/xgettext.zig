@@ -44,7 +44,7 @@ pub fn main() !void {
     defer po.deinit();
 
     var stdout_buf = io.bufferedWriter(io.getStdOut().writer());
-    try po.writeTo(stdout_buf.writer());
+    try po.write(stdout_buf.writer());
     try stdout_buf.flush();
 }
 
