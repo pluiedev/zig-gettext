@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const binaries = &[_][]const u8{
+    "msgbundle",
     "msgfmt",
     "xgettext",
 };
@@ -12,6 +13,15 @@ pub fn build(b: *std.Build) void {
     const gettext = b.addModule("gettext", .{
         .source_file = .{ .path = "src/gettext.zig" },
     });
+
+    const tests = b.addTest(.{
+        .root_source_file = .{ .path = "src/gettext.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const run_tests = b.step("test", "Run project tests");
+    run_tests.dependOn(&tests.step);
 
     for (binaries) |bin| {
         addBin(b, bin, target, optimize, gettext);

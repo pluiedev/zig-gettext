@@ -48,7 +48,7 @@ pub fn main() !void {
     try writer.writeIntNative(u32, 0); // hash table size
     try writer.writeIntNative(u32, 0); // hash table offset
 
-    var strings_pos: u32 = header_end + 16 * n_strings;
+    var strings_pos = header_end + 16 * n_strings;
     for (entries) |entry| {
         const original_len = originalLen(entry);
         try writer.writeIntNative(u32, original_len);

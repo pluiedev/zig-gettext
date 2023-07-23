@@ -66,24 +66,24 @@ pub fn headerField(self: Mo, comptime field: meta.FieldEnum(Header)) meta.FieldT
 }
 
 /// Returns the nth original string.
-pub fn originalString(self: *const Mo, n: u32) [:0]const u8 {
-    return self.string(self.headerField(.originals_offset), n);
+pub fn originalStringAt(self: *const Mo, n: u32) [:0]const u8 {
+    return self.stringAt(self.headerField(.originals_offset), n);
 }
 
 /// Returns the nth translation string.
-pub fn translationString(self: *const Mo, n: u32) [:0]const u8 {
-    return self.string(self.headerField(.translations_offset), n);
+pub fn translationStringAt(self: *const Mo, n: u32) [:0]const u8 {
+    return self.stringAt(self.headerField(.translations_offset), n);
 }
 
 /// Looks up the translation (if any) for the given string.
 pub fn findTranslation(self: *const Mo, msgctxt: ?[]const u8, msgid: []const u8) ?[:0]const u8 {
     var left: u32 = 0;
-    var right: u32 = self.headerField(.n_strings);
+    var right = self.headerField(.n_strings);
 
     while (left < right) {
         const mid = left + (right - left) / 2;
         switch (idOrder(msgctxt, msgid, self.original(mid))) {
-            .eq => return self.translationString(mid),
+            .eq => return self.translationStringAt(mid),
             .gt => left = mid + 1,
             .lt => right = mid,
         }
@@ -105,7 +105,7 @@ fn idOrder(msgctxt: ?[]const u8, msgid: []const u8, other_full: []const u8) math
     return if (id_iter.next() == null) .eq else .gt;
 }
 
-fn string(self: *const Mo, table_offset: u32, n: u32) [:0]const u8 {
+fn stringAt(self: *const Mo, table_offset: u32, n: u32) [:0]const u8 {
     const desc = self.data[table_offset + 8 * n ..][0..8];
     const len = self.toNative(@bitCast(desc[0..4].*));
     const off = self.toNative(@bitCast(desc[4..8].*));
