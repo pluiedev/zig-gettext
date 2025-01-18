@@ -152,16 +152,40 @@ fn getStringArg(
 ) !?[]u8 {
     if (arg >= call.ast.params.len) return null;
     const idx = call.ast.params[arg];
-    if (ast.nodes.items(.tag)[idx] != .string_literal) return null;
-    const token = ast.nodes.items(.main_token)[idx];
-    return zig.string_literal.parseAlloc(allocator, ast.tokenSlice(token)) catch |e| switch (e) {
-        error.InvalidLiteral => {
-            const loc = zig.findLineColumn(ast.source, ast.tokens.items(.start)[token]);
-            log.err("{s}:{}:{}: invalid string literal", .{ path, loc.line + 1, loc.column + 1 });
-            return null;
+
+    switch (ast.nodes.items(.tag)[idx]) {
+        .string_literal => {
+            const token = ast.nodes.items(.main_token)[idx];
+
+            return zig.string_literal.parseAlloc(allocator, ast.tokenSlice(token)) catch |e| switch (e) {
+                error.InvalidLiteral => {
+                    const loc = zig.findLineColumn(ast.source, ast.tokens.items(.start)[token]);
+                    log.err("{s}:{}:{}: invalid string literal", .{ path, loc.line + 1, loc.column + 1 });
+                    return null;
+                },
+                error.OutOfMemory => error.OutOfMemory,
+            };
         },
-        error.OutOfMemory => error.OutOfMemory,
-    };
+        .multiline_string_literal => {
+            var buf = std.ArrayList(u8).init(allocator);
+
+            const data = ast.nodes.items(.data)[idx];
+            std.debug.print("{}\n", .{ast.tokens.items(.tag)[ast.nodes.items(.main_token)[idx]]});
+
+            var tok = data.lhs;
+            while (tok <= data.rhs) : (tok += 1) {
+                // This should always be true, but checking won't hurt
+                var s = ast.tokenSlice(tok);
+                if (std.mem.startsWith(u8, s, "\\\\")) s = s[2..];
+
+                try buf.appendSlice(s);
+            }
+            std.debug.print("{s}\n", .{buf.items});
+
+            return try buf.toOwnedSlice();
+        },
+        else => return null,
+    }
 }
 
 /// Work-in-progress (WIP) state of a PO file.
