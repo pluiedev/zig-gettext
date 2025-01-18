@@ -38,27 +38,29 @@ pub fn main() !void {
     var output_buf = io.bufferedWriter(output_file.writer());
     const writer = output_buf.writer();
 
-    try writer.writeIntNative(u32, Mo.magic);
-    try writer.writeIntNative(u32, 0);
+    // The endianness doesn't matter. We just use native endianness.
+    const native_endian = @import("builtin").cpu.arch.endian();
+    try writer.writeInt(u32, Mo.magic, native_endian);
+    try writer.writeInt(u32, 0, native_endian);
     const n_strings: u32 = @intCast(entries.len);
-    try writer.writeIntNative(u32, n_strings);
+    try writer.writeInt(u32, n_strings, native_endian);
     const header_end: u32 = @intCast(@sizeOf(Mo.Header));
-    try writer.writeIntNative(u32, header_end); // originals offset
-    try writer.writeIntNative(u32, header_end + 8 * n_strings); // translations offset
-    try writer.writeIntNative(u32, 0); // hash table size
-    try writer.writeIntNative(u32, 0); // hash table offset
+    try writer.writeInt(u32, header_end, native_endian); // originals offset
+    try writer.writeInt(u32, header_end + 8 * n_strings, native_endian); // translations offset
+    try writer.writeInt(u32, 0, native_endian); // hash table size
+    try writer.writeInt(u32, 0, native_endian); // hash table offset
 
     var strings_pos = header_end + 16 * n_strings;
     for (entries) |entry| {
         const original_len = originalLen(entry);
-        try writer.writeIntNative(u32, original_len);
-        try writer.writeIntNative(u32, strings_pos);
+        try writer.writeInt(u32, original_len, native_endian);
+        try writer.writeInt(u32, strings_pos, native_endian);
         strings_pos += original_len + 1;
     }
     for (entries) |entry| {
         const translation_len = translationLen(entry);
-        try writer.writeIntNative(u32, translation_len);
-        try writer.writeIntNative(u32, strings_pos);
+        try writer.writeInt(u32, translation_len, native_endian);
+        try writer.writeInt(u32, strings_pos, native_endian);
         strings_pos += translation_len + 1;
     }
 

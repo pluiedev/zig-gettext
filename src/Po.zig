@@ -477,18 +477,19 @@ pub fn write(self: Po, w: anytype) @TypeOf(w).Error!void {
 }
 
 fn writeString(w: anytype, s: []const u8, line_prefix: []const u8) !void {
-    var next_newline = mem.indexOfScalar(u8, s, '\n');
-    if (next_newline) |first_newline| {
+    if (mem.indexOfScalar(u8, s, '\n')) |first_newline| {
         try w.writeAll("\"\"");
         try w.writeByte('\n');
         try w.writeAll(line_prefix);
         try writeStringLine(w, s[0 .. first_newline + 1]);
-        var start = first_newline + 1;
-        next_newline = mem.indexOfScalarPos(u8, s, start, '\n');
-        while (next_newline) |end| : (next_newline = mem.indexOfScalarPos(u8, s, end + 1, '\n')) {
+
+        var start = first_newline;
+        while (true) {
+            const end = mem.indexOfScalarPos(u8, s, start + 1, '\n') orelse break;
             try w.writeByte('\n');
             try w.writeAll(line_prefix);
-            try writeStringLine(w, s[start .. end + 1]);
+            try writeStringLine(w, s[start + 1 .. end + 1]);
+            start = end;
         }
     } else {
         try writeStringLine(w, s);

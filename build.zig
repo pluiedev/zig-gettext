@@ -11,11 +11,11 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const gettext = b.addModule("gettext", .{
-        .source_file = .{ .path = "src/gettext.zig" },
+        .root_source_file = b.path("src/gettext.zig"),
     });
 
     const tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/gettext.zig" },
+        .root_source_file = b.path("src/gettext.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -31,7 +31,7 @@ pub fn build(b: *std.Build) void {
 fn addBin(
     b: *std.Build,
     name: []const u8,
-    target: std.zig.CrossTarget,
+    target: std.Build.ResolvedTarget,
     optimize: std.builtin.Mode,
     gettext: *std.Build.Module,
 ) void {
@@ -39,11 +39,9 @@ fn addBin(
         .name = name,
         .target = target,
         .optimize = optimize,
-        .root_source_file = .{
-            .path = b.pathJoin(&.{ "src", "bin", b.fmt("{s}.zig", .{name}) }),
-        },
+        .root_source_file = b.path(b.fmt("src/bin/{s}.zig", .{name})),
     });
-    exe.addModule("gettext", gettext);
+    exe.root_module.addImport("gettext", gettext);
     b.installArtifact(exe);
 
     const run = b.addRunArtifact(exe);
