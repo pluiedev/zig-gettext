@@ -214,7 +214,19 @@ pub const Wip = struct {
     pub fn build(self: *Wip) !Po {
         const allocator = self.arena.allocator();
         var entries = ArrayListUnmanaged(Po.Entry){};
-        try entries.ensureTotalCapacityPrecise(allocator, self.entries.count());
+        try entries.ensureTotalCapacityPrecise(allocator, self.entries.count() + 1);
+
+        entries.appendAssumeCapacity(.{
+            .msgid = "",
+            .msgstr =
+            \\Language: 
+            \\MIME-Version: 1.0
+            \\Content-Type: text/plain; charset=UTF-8
+            \\Content-Transfer-Encoding: 8bit
+            \\
+            ,
+        });
+
         var wip_entry_iter = self.entries.iterator();
         while (wip_entry_iter.next()) |wip_entry| {
             entries.appendAssumeCapacity(.{
@@ -223,18 +235,17 @@ pub const Wip = struct {
                 .msgctxt = wip_entry.key_ptr.msgctxt,
                 .msgid = wip_entry.key_ptr.msgid,
                 .msgid_plural = wip_entry.value_ptr.msgid_plural,
-                .msgstr = wip_entry.key_ptr.msgid,
+                .msgstr = "",
                 .plural_msgstrs = plural_msgstrs: {
-                    if (wip_entry.value_ptr.msgid_plural) |msgid_plural| {
-                        var slice = try allocator.alloc([]const u8, 1);
-                        slice[0] = msgid_plural;
-                        break :plural_msgstrs slice;
+                    if (wip_entry.value_ptr.msgid_plural) |_| {
+                        break :plural_msgstrs &.{""};
                     } else {
                         break :plural_msgstrs &.{};
                     }
                 },
             });
         }
+
         self.entries.deinit(allocator);
 
         std.sort.heap(Po.Entry, entries.items, {}, entryLessThan);
