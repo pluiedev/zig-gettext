@@ -170,7 +170,6 @@ fn getStringArg(
             var buf = std.ArrayList(u8).init(allocator);
 
             const data = ast.nodes.items(.data)[idx];
-            std.debug.print("{}\n", .{ast.tokens.items(.tag)[ast.nodes.items(.main_token)[idx]]});
 
             var tok = data.lhs;
             while (tok <= data.rhs) : (tok += 1) {
@@ -180,7 +179,6 @@ fn getStringArg(
 
                 try buf.appendSlice(s);
             }
-            std.debug.print("{s}\n", .{buf.items});
 
             return try buf.toOwnedSlice();
         },
