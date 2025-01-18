@@ -59,6 +59,7 @@ pub const Keyword = struct {
 };
 
 pub const default_keywords = &[_]Keyword{
+    .{ .identifier = "_" },
     .{ .identifier = "gettext" },
     .{ .identifier = "dgettext", .msgid_arg = 1 },
     .{ .identifier = "dcgettext", .msgid_arg = 1 },
@@ -109,9 +110,10 @@ pub fn extractZig(allocator: Allocator, wip: *Wip, options: ExtractOptions) Allo
     var i: Ast.Node.Index = 0;
     while (i < ast.nodes.len) : (i += 1) {
         const call = ast.fullCall(&buf, i) orelse continue;
-        const callee = callee: {
-            if (tags[call.ast.fn_expr] != .identifier) continue;
-            break :callee ast.tokenSlice(main_tokens[call.ast.fn_expr]);
+        const callee = switch (tags[call.ast.fn_expr]) {
+            .field_access => ast.tokenSlice(ast.nodes.get(call.ast.fn_expr).data.rhs),
+            .identifier => ast.tokenSlice(main_tokens[call.ast.fn_expr]),
+            else => continue,
         };
         const keyword = keywords.get(callee) orelse continue;
 
