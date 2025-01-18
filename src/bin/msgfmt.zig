@@ -33,9 +33,7 @@ pub fn main() !void {
     sort.heap(Po.Entry, entries, {}, entryLessThan);
 
     // TODO: configurable output path
-    var output_file = try fs.cwd().createFile("messages.mo", .{});
-    defer output_file.close();
-    var output_buf = io.bufferedWriter(output_file.writer());
+    var output_buf = io.bufferedWriter(std.io.getStdOut().writer());
     const writer = output_buf.writer();
 
     // The endianness doesn't matter. We just use native endianness.
