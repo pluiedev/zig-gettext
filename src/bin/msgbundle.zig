@@ -22,7 +22,7 @@ pub fn main() !void {
         return error.BadArgs;
     }
 
-    var input_dir = try fs.cwd().openIterableDir(args[1], .{});
+    var input_dir = try fs.cwd().openDir(args[1], .{});
     defer input_dir.close();
 
     const input_paths = try getInputPaths(allocator, input_dir);
@@ -33,23 +33,24 @@ pub fn main() !void {
     var output_buf = io.bufferedWriter(output_file.writer());
     const writer = output_buf.writer();
 
-    try writer.writeIntNative(u32, MoBundle.magic);
-    try writer.writeIntNative(u32, 0);
+    const endian = @import("builtin").cpu.arch.endian();
+    try writer.writeInt(u32, MoBundle.magic, endian);
+    try writer.writeInt(u32, 0, endian);
     const n_files: u32 = @intCast(input_paths.count());
-    try writer.writeIntNative(u32, n_files);
+    try writer.writeInt(u32, n_files, endian);
     const header_end: u32 = @intCast(@sizeOf(MoBundle.Header));
-    try writer.writeIntNative(u32, header_end); // paths offset
-    try writer.writeIntNative(u32, header_end + 8 * n_files); // contents offset
+    try writer.writeInt(u32, header_end, endian); // paths offset
+    try writer.writeInt(u32, header_end + 8 * n_files, endian); // contents offset
 
     var data_pos = header_end + 16 * n_files;
     for (input_paths.keys()) |path| {
-        try writer.writeIntNative(u32, @as(u32, @intCast(path.len)) + 1);
-        try writer.writeIntNative(u32, data_pos);
+        try writer.writeInt(u32, @as(u32, @intCast(path.len)) + 1, endian);
+        try writer.writeInt(u32, data_pos, endian);
         data_pos += @as(u32, @intCast(path.len)) + 1;
     }
     for (input_paths.values()) |size| {
-        try writer.writeIntNative(u32, size + 1);
-        try writer.writeIntNative(u32, data_pos);
+        try writer.writeInt(u32, size + 1, endian);
+        try writer.writeInt(u32, data_pos, endian);
         data_pos += size + 1;
     }
 
@@ -58,7 +59,7 @@ pub fn main() !void {
         try writer.writeByte(0);
     }
     for (input_paths.keys(), input_paths.values()) |path, size| {
-        const file = try input_dir.dir.openFile(path, .{});
+        const file = try input_dir.openFile(path, .{});
         defer file.close();
 
         var actual_size: u32 = 0;
@@ -79,7 +80,7 @@ pub fn main() !void {
     try output_buf.flush();
 }
 
-fn getInputPaths(allocator: Allocator, input_dir: fs.IterableDir) !StringArrayHashMapUnmanaged(u32) {
+fn getInputPaths(allocator: Allocator, input_dir: fs.Dir) !StringArrayHashMapUnmanaged(u32) {
     var paths = StringArrayHashMapUnmanaged(u32){};
 
     var locales = ArrayListUnmanaged([]const u8){};
@@ -92,7 +93,7 @@ fn getInputPaths(allocator: Allocator, input_dir: fs.IterableDir) !StringArrayHa
     sort.heap([]const u8, locales.items, {}, strLessThan);
 
     for (locales.items) |locale| {
-        var locale_dir = try input_dir.dir.openIterableDir(locale, .{});
+        var locale_dir = try input_dir.openDir(locale, .{});
         defer locale_dir.close();
         try appendLocalePaths(allocator, &paths, locale_dir, locale);
     }
@@ -103,7 +104,7 @@ fn getInputPaths(allocator: Allocator, input_dir: fs.IterableDir) !StringArrayHa
 fn appendLocalePaths(
     allocator: Allocator,
     paths: *StringArrayHashMapUnmanaged(u32),
-    locale_dir: fs.IterableDir,
+    locale_dir: fs.Dir,
     locale: []const u8,
 ) !void {
     var categories = ArrayListUnmanaged([]const u8){};
@@ -116,7 +117,7 @@ fn appendLocalePaths(
     sort.heap([]const u8, categories.items, {}, strLessThan);
 
     for (categories.items) |category| {
-        var category_dir = try locale_dir.dir.openIterableDir(category, .{});
+        var category_dir = try locale_dir.openDir(category, .{});
         defer category_dir.close();
         try appendCategoryPaths(allocator, paths, category_dir, locale, category);
     }
@@ -125,7 +126,7 @@ fn appendLocalePaths(
 fn appendCategoryPaths(
     allocator: Allocator,
     paths: *StringArrayHashMapUnmanaged(u32),
-    category_dir: fs.IterableDir,
+    category_dir: fs.Dir,
     locale: []const u8,
     category: []const u8,
 ) !void {
@@ -140,7 +141,7 @@ fn appendCategoryPaths(
 
     for (domains.items) |domain| {
         const path = try fmt.allocPrint(allocator, "{s}/{s}/{s}", .{ locale, category, domain });
-        const stat = try category_dir.dir.statFile(domain);
+        const stat = try category_dir.statFile(domain);
         try paths.put(allocator, path, @intCast(stat.size));
     }
 }

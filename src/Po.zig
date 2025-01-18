@@ -483,7 +483,7 @@ fn writeString(w: anytype, s: []const u8, line_prefix: []const u8) !void {
         try w.writeByte('\n');
         try w.writeAll(line_prefix);
         try writeStringLine(w, s[0 .. first_newline + 1]);
-        var start = first_newline + 1;
+        const start = first_newline + 1;
         next_newline = mem.indexOfScalarPos(u8, s, start, '\n');
         while (next_newline) |end| : (next_newline = mem.indexOfScalarPos(u8, s, end + 1, '\n')) {
             try w.writeByte('\n');
